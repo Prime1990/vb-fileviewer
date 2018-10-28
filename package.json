@@ -11,14 +11,19 @@
         "Other"
     ],
     "activationEvents": [
-        "onCommand:extension.viewVbFile"
+        "onCommand:extension.viewVbFile",
+        "onCommand:extension.viewVbFileHexValues"
     ],
     "main": "./out/extension",
     "contributes": {
         "commands": [
             {
                 "command": "extension.viewVbFile",
-                "title": "VB File"
+                "title": "VB-FileViewer"
+            },
+            {
+                "command": "extension.viewVbFileHexValues",
+                "title": "VB-FileViewer With Hex-Values"
             }
         ]
     },

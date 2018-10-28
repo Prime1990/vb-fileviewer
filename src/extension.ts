@@ -5,6 +5,12 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 
+
+let _docContent: string = "";
+let _returnDocument: string[] = [];
+
+let showHexValues = false;
+
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -14,25 +20,18 @@ export function activate(context: vscode.ExtensionContext) {
     console.log('Congratulations, your extension "vb-fileviewer" is now active!');
     let disposableFileViewer = vscode.commands.registerCommand('extension.viewVbFile', () => {
 
-        const options: vscode.OpenDialogOptions = {
-            canSelectMany: false,
-            openLabel: 'Open'
-        };
+        showHexValues = false;
+        execute();
+    
+    });
+    let disposableFileViewerHexValues = vscode.commands.registerCommand('extension.viewVbFileHexValues', () => {
 
-        vscode.window.showOpenDialog(options).then(fileUri => {
-
-            if (fileUri) {
-                fs.readFile(fileUri[0].fsPath, 'hex', (error, data) => {
-                    if (!error) {
-                        _docContent = data;
-                        convert(output);
-                    }
-                });
-            }
-        }
-        );
+        showHexValues = true;
+        execute();
+    
     });
     context.subscriptions.push(disposableFileViewer);
+    context.subscriptions.push(disposableFileViewerHexValues);
 
 }
 
@@ -42,9 +41,6 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate() {
 }
 
-let _docContent: string = "";
-let _returnDocument: string[] = [];
-
 function hex2a(hex: string): string {
     var str = '';
     for (var i = 0; i < hex.length; i += 2) {
@@ -53,8 +49,11 @@ function hex2a(hex: string): string {
             parseInt(hex.substr(i, 2), 16) > 159)) {
             str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
         } else {
-            str += ".";
-        //    str += "<0x" + hex.substr(i, 2) + ">";
+            if (showHexValues) {
+                str += "<0x" + hex.substr(i, 2) + ">";
+            } else {
+                str += ".";
+            }
         }
     }
     return str;
@@ -84,4 +83,24 @@ function output() {
     vscode.workspace.openTextDocument(openPath).then(doc => {
         vscode.window.showTextDocument(doc);
     });
+}
+
+function execute() {
+        const options: vscode.OpenDialogOptions = {
+    canSelectMany: false,
+    openLabel: 'Open'
+};
+
+vscode.window.showOpenDialog(options).then(fileUri => {
+
+    if (fileUri) {
+        fs.readFile(fileUri[0].fsPath, 'hex', (error, data) => {
+            if (!error) {
+                _docContent = data;
+                convert(output);
+            }
+        });
+    }
+}
+);
 }
