@@ -2,7 +2,8 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { FileViewer } from './fileviewer';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -11,40 +12,73 @@ export function activate(context: vscode.ExtensionContext) {
     // Use the console to output diagnostic information (console.log) and errors (console.error)
     // This line of code will only be executed once when your extension is activated
     console.log('Congratulations, your extension "vb-fileviewer" is now active!');
-
-    // The command has been defined in the package.json file
-    // Now provide the implementation of the command with  registerCommand
-    // The commandId parameter must match the command field in package.json
-    let disposable = vscode.commands.registerCommand('extension.sayHello', () => {
-        // The code you place here will be executed every time your command is executed
-
-        // Display a message box to the user
-        vscode.window.showInformationMessage('This will be the FileViewer');
-        let fileViewer = new FileViewer;
-        vscode.window.showInformationMessage(fileViewer.testLog("Das ist eine Nachricht!"));
-        
-        let editor = vscode.window.activeTextEditor;
-        if (!editor) {
-            return; // No open text editor
-        }
-
-        let selection = editor.selection;
-        let text = editor.document.getText(selection);
-
-        // Display a message box to the user
-        vscode.window.showInformationMessage('Selected characters: ' + text.length);
-
-    });
-
     let disposableFileViewer = vscode.commands.registerCommand('extension.viewVbFile', () => {
-// Display a message box to the user
-let fileViewer = new FileViewer;
-vscode.window.showInformationMessage(fileViewer.testLog("Das ist eine Nachricht!"));
+
+        const options: vscode.OpenDialogOptions = {
+            canSelectMany: false,
+            openLabel: 'Open'
+        };
+
+        vscode.window.showOpenDialog(options).then(fileUri => {
+
+            if (fileUri) {
+                fs.readFile(fileUri[0].fsPath, 'hex', (error, data) => {
+                    if (!error) {
+                        _docContent = data;
+                        convert(output);
+                    }
+                });
+            }
+        }
+        );
     });
-    context.subscriptions.push(disposable);
     context.subscriptions.push(disposableFileViewer);
+
 }
+
+
 
 // this method is called when your extension is deactivated
 export function deactivate() {
+}
+
+let _docContent: string = "";
+let _returnDocument: string[] = [];
+
+function hex2a(hex: string): string {
+    var str = '';
+    for (var i = 0; i < hex.length; i += 2) {
+        if (hex.substr(i, 2) !== '00') {
+            str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
+        } else {
+            str += "<00>";
+        }
+    }
+    return str;
+}
+
+function convert(callback: () => void) {
+    let startPosition = 0;
+    let lengthDataSet = 0;
+    while (startPosition < _docContent.length) {
+        lengthDataSet = parseInt(_docContent.substr(startPosition, 4), 16);
+        console.log(lengthDataSet);
+        _returnDocument.push("Length: " + (lengthDataSet - 4) + " Content: " + hex2a(_docContent.substr(startPosition + 8, (lengthDataSet - 4) * 2)));
+        startPosition += lengthDataSet * 2;
+    }
+    callback();
+}
+
+function output() {
+    let content = "";
+    _returnDocument.forEach(element => {
+        content += element + "\n";
+    });
+    var filePath = path.join(__dirname, "tmp.txt");
+    fs.writeFileSync(filePath, content, 'latin1');
+
+    var openPath = vscode.Uri.file(filePath);
+    vscode.workspace.openTextDocument(openPath).then(doc => {
+        vscode.window.showTextDocument(doc);
+    });
 }
