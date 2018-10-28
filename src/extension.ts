@@ -48,10 +48,13 @@ let _returnDocument: string[] = [];
 function hex2a(hex: string): string {
     var str = '';
     for (var i = 0; i < hex.length; i += 2) {
-        if (hex.substr(i, 2) !== '00') {
+        if (parseInt(hex.substr(i, 2), 16) > 31  && 
+            (parseInt(hex.substr(i, 2), 16) < 127 ||
+            parseInt(hex.substr(i, 2), 16) > 159)) {
             str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
         } else {
-            str += "<00>";
+            str += ".";
+        //    str += "<0x" + hex.substr(i, 2) + ">";
         }
     }
     return str;
